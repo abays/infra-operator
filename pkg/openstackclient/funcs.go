@@ -49,9 +49,10 @@ func ClientPod(
 	clientPod.Spec.ServiceAccountName = instance.RbacResourceName()
 	clientPod.Spec.Containers = []corev1.Container{
 		{
-			Name:    "openstackclient",
-			Image:   instance.Spec.ContainerImage,
-			Command: []string{"/bin/sleep"},
+			Name:            "openstackclient",
+			Image:           instance.Spec.ContainerImage,
+			ImagePullPolicy: corev1.PullIfNotPresent,
+			Command:         []string{"/bin/sleep"},
 			Args:    []string{"infinity"},
 			SecurityContext: &corev1.SecurityContext{
 				RunAsUser:  &runAsUser,
