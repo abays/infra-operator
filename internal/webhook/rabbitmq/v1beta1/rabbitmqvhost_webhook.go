@@ -18,13 +18,10 @@ package v1beta1
 
 import (
 	"context"
-	"fmt"
 
-	"k8s.io/apimachinery/pkg/runtime"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	logf "sigs.k8s.io/controller-runtime/pkg/log"
-	"sigs.k8s.io/controller-runtime/pkg/webhook"
 	"sigs.k8s.io/controller-runtime/pkg/webhook/admission"
 
 	rabbitmqv1beta1 "github.com/openstack-k8s-operators/infra-operator/apis/rabbitmq/v1beta1"
@@ -34,7 +31,7 @@ var rabbitmqvhostlog = logf.Log.WithName("rabbitmqvhost-resource")
 
 // SetupRabbitMQVhostWebhookWithManager registers the webhook for RabbitMQVhost in the manager.
 func SetupRabbitMQVhostWebhookWithManager(mgr ctrl.Manager) error {
-	return ctrl.NewWebhookManagedBy(mgr).For(&rabbitmqv1beta1.RabbitMQVhost{}).
+	return ctrl.NewWebhookManagedBy(mgr, &rabbitmqv1beta1.RabbitMQVhost{}).
 		WithDefaulter(&RabbitMQVhostCustomDefaulter{
 			Client: mgr.GetClient(),
 		}).
@@ -56,14 +53,10 @@ type RabbitMQVhostCustomDefaulter struct {
 	Client client.Client
 }
 
-var _ webhook.CustomDefaulter = &RabbitMQVhostCustomDefaulter{}
+var _ admission.Defaulter[*rabbitmqv1beta1.RabbitMQVhost] = &RabbitMQVhostCustomDefaulter{}
 
-// Default implements webhook.CustomDefaulter so a webhook will be registered for the type RabbitMQVhost.
-func (d *RabbitMQVhostCustomDefaulter) Default(_ context.Context, obj runtime.Object) error {
-	rabbitmqvhost, ok := obj.(*rabbitmqv1beta1.RabbitMQVhost)
-	if !ok {
-		return fmt.Errorf("expected a RabbitMQVhost object but got %T", obj)
-	}
+// Default implements admission.Defaulter so a webhook will be registered for the type RabbitMQVhost.
+func (d *RabbitMQVhostCustomDefaulter) Default(_ context.Context, rabbitmqvhost *rabbitmqv1beta1.RabbitMQVhost) error {
 	rabbitmqvhostlog.Info("Defaulting for RabbitMQVhost", "name", rabbitmqvhost.GetName())
 
 	rabbitmqvhost.Default(d.Client)
@@ -82,36 +75,24 @@ type RabbitMQVhostCustomValidator struct {
 	Client client.Client
 }
 
-var _ webhook.CustomValidator = &RabbitMQVhostCustomValidator{}
+var _ admission.Validator[*rabbitmqv1beta1.RabbitMQVhost] = &RabbitMQVhostCustomValidator{}
 
-// ValidateCreate implements webhook.CustomValidator so a webhook will be registered for the type RabbitMQVhost.
-func (v *RabbitMQVhostCustomValidator) ValidateCreate(_ context.Context, obj runtime.Object) (admission.Warnings, error) {
-	rabbitmqvhost, ok := obj.(*rabbitmqv1beta1.RabbitMQVhost)
-	if !ok {
-		return nil, fmt.Errorf("expected a RabbitMQVhost object but got %T", obj)
-	}
+// ValidateCreate implements admission.Validator so a webhook will be registered for the type RabbitMQVhost.
+func (v *RabbitMQVhostCustomValidator) ValidateCreate(_ context.Context, rabbitmqvhost *rabbitmqv1beta1.RabbitMQVhost) (admission.Warnings, error) {
 	rabbitmqvhostlog.Info("Validation for RabbitMQVhost upon creation", "name", rabbitmqvhost.GetName())
 
 	return rabbitmqvhost.ValidateCreate(v.Client)
 }
 
-// ValidateUpdate implements webhook.CustomValidator so a webhook will be registered for the type RabbitMQVhost.
-func (v *RabbitMQVhostCustomValidator) ValidateUpdate(_ context.Context, oldObj, newObj runtime.Object) (admission.Warnings, error) {
-	rabbitmqvhost, ok := newObj.(*rabbitmqv1beta1.RabbitMQVhost)
-	if !ok {
-		return nil, fmt.Errorf("expected a RabbitMQVhost object for the newObj but got %T", newObj)
-	}
+// ValidateUpdate implements admission.Validator so a webhook will be registered for the type RabbitMQVhost.
+func (v *RabbitMQVhostCustomValidator) ValidateUpdate(_ context.Context, oldObj, rabbitmqvhost *rabbitmqv1beta1.RabbitMQVhost) (admission.Warnings, error) {
 	rabbitmqvhostlog.Info("Validation for RabbitMQVhost upon update", "name", rabbitmqvhost.GetName())
 
 	return rabbitmqvhost.ValidateUpdate(v.Client, oldObj)
 }
 
-// ValidateDelete implements webhook.CustomValidator so a webhook will be registered for the type RabbitMQVhost.
-func (v *RabbitMQVhostCustomValidator) ValidateDelete(_ context.Context, obj runtime.Object) (admission.Warnings, error) {
-	rabbitmqvhost, ok := obj.(*rabbitmqv1beta1.RabbitMQVhost)
-	if !ok {
-		return nil, fmt.Errorf("expected a RabbitMQVhost object but got %T", obj)
-	}
+// ValidateDelete implements admission.Validator so a webhook will be registered for the type RabbitMQVhost.
+func (v *RabbitMQVhostCustomValidator) ValidateDelete(_ context.Context, rabbitmqvhost *rabbitmqv1beta1.RabbitMQVhost) (admission.Warnings, error) {
 	rabbitmqvhostlog.Info("Validation for RabbitMQVhost upon deletion", "name", rabbitmqvhost.GetName())
 
 	return rabbitmqvhost.ValidateDelete(v.Client)

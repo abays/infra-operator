@@ -18,13 +18,10 @@ package v1beta1
 
 import (
 	"context"
-	"fmt"
 
-	"k8s.io/apimachinery/pkg/runtime"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	logf "sigs.k8s.io/controller-runtime/pkg/log"
-	"sigs.k8s.io/controller-runtime/pkg/webhook"
 	"sigs.k8s.io/controller-runtime/pkg/webhook/admission"
 
 	rabbitmqv1beta1 "github.com/openstack-k8s-operators/infra-operator/apis/rabbitmq/v1beta1"
@@ -34,7 +31,7 @@ var log = logf.Log.WithName("rabbitmquser-resource")
 
 // SetupRabbitMQUserWebhookWithManager registers the webhook for RabbitMQUser in the manager.
 func SetupRabbitMQUserWebhookWithManager(mgr ctrl.Manager) error {
-	return ctrl.NewWebhookManagedBy(mgr).For(&rabbitmqv1beta1.RabbitMQUser{}).
+	return ctrl.NewWebhookManagedBy(mgr, &rabbitmqv1beta1.RabbitMQUser{}).
 		WithDefaulter(&RabbitMQUserCustomDefaulter{
 			Client: mgr.GetClient(),
 		}).
@@ -56,14 +53,10 @@ type RabbitMQUserCustomDefaulter struct {
 	Client client.Client
 }
 
-var _ webhook.CustomDefaulter = &RabbitMQUserCustomDefaulter{}
+var _ admission.Defaulter[*rabbitmqv1beta1.RabbitMQUser] = &RabbitMQUserCustomDefaulter{}
 
-// Default implements webhook.CustomDefaulter so a webhook will be registered for the type RabbitMQUser.
-func (d *RabbitMQUserCustomDefaulter) Default(ctx context.Context, obj runtime.Object) error {
-	rabbitmquser, ok := obj.(*rabbitmqv1beta1.RabbitMQUser)
-	if !ok {
-		return fmt.Errorf("expected a RabbitMQUser object but got %T", obj)
-	}
+// Default implements admission.Defaulter so a webhook will be registered for the type RabbitMQUser.
+func (d *RabbitMQUserCustomDefaulter) Default(ctx context.Context, rabbitmquser *rabbitmqv1beta1.RabbitMQUser) error {
 	log.Info("Defaulting for RabbitMQUser", "name", rabbitmquser.GetName())
 
 	rabbitmquser.Default(ctx, d.Client)
@@ -82,36 +75,24 @@ type RabbitMQUserCustomValidator struct {
 	Client client.Client
 }
 
-var _ webhook.CustomValidator = &RabbitMQUserCustomValidator{}
+var _ admission.Validator[*rabbitmqv1beta1.RabbitMQUser] = &RabbitMQUserCustomValidator{}
 
-// ValidateCreate implements webhook.CustomValidator so a webhook will be registered for the type RabbitMQUser.
-func (v *RabbitMQUserCustomValidator) ValidateCreate(_ context.Context, obj runtime.Object) (admission.Warnings, error) {
-	rabbitmquser, ok := obj.(*rabbitmqv1beta1.RabbitMQUser)
-	if !ok {
-		return nil, fmt.Errorf("expected a RabbitMQUser object but got %T", obj)
-	}
+// ValidateCreate implements admission.Validator so a webhook will be registered for the type RabbitMQUser.
+func (v *RabbitMQUserCustomValidator) ValidateCreate(_ context.Context, rabbitmquser *rabbitmqv1beta1.RabbitMQUser) (admission.Warnings, error) {
 	log.Info("Validation for RabbitMQUser upon creation", "name", rabbitmquser.GetName())
 
 	return rabbitmquser.ValidateCreate(v.Client)
 }
 
-// ValidateUpdate implements webhook.CustomValidator so a webhook will be registered for the type RabbitMQUser.
-func (v *RabbitMQUserCustomValidator) ValidateUpdate(_ context.Context, oldObj, newObj runtime.Object) (admission.Warnings, error) {
-	rabbitmquser, ok := newObj.(*rabbitmqv1beta1.RabbitMQUser)
-	if !ok {
-		return nil, fmt.Errorf("expected a RabbitMQUser object for the newObj but got %T", newObj)
-	}
+// ValidateUpdate implements admission.Validator so a webhook will be registered for the type RabbitMQUser.
+func (v *RabbitMQUserCustomValidator) ValidateUpdate(_ context.Context, oldObj, rabbitmquser *rabbitmqv1beta1.RabbitMQUser) (admission.Warnings, error) {
 	log.Info("Validation for RabbitMQUser upon update", "name", rabbitmquser.GetName())
 
 	return rabbitmquser.ValidateUpdate(v.Client, oldObj)
 }
 
-// ValidateDelete implements webhook.CustomValidator so a webhook will be registered for the type RabbitMQUser.
-func (v *RabbitMQUserCustomValidator) ValidateDelete(_ context.Context, obj runtime.Object) (admission.Warnings, error) {
-	rabbitmquser, ok := obj.(*rabbitmqv1beta1.RabbitMQUser)
-	if !ok {
-		return nil, fmt.Errorf("expected a RabbitMQUser object but got %T", obj)
-	}
+// ValidateDelete implements admission.Validator so a webhook will be registered for the type RabbitMQUser.
+func (v *RabbitMQUserCustomValidator) ValidateDelete(_ context.Context, rabbitmquser *rabbitmqv1beta1.RabbitMQUser) (admission.Warnings, error) {
 	log.Info("Validation for RabbitMQUser upon deletion", "name", rabbitmquser.GetName())
 
 	return rabbitmquser.ValidateDelete(v.Client)

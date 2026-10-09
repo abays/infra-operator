@@ -19,12 +19,9 @@ package v1beta1
 
 import (
 	"context"
-	"fmt"
 
-	"k8s.io/apimachinery/pkg/runtime"
 	ctrl "sigs.k8s.io/controller-runtime"
 	logf "sigs.k8s.io/controller-runtime/pkg/log"
-	"sigs.k8s.io/controller-runtime/pkg/webhook"
 	"sigs.k8s.io/controller-runtime/pkg/webhook/admission"
 
 	memcachedv1beta1 "github.com/openstack-k8s-operators/infra-operator/apis/memcached/v1beta1"
@@ -36,7 +33,7 @@ var memcachedlog = logf.Log.WithName("memcached-resource")
 
 // SetupMemcachedWebhookWithManager registers the webhook for Memcached in the manager.
 func SetupMemcachedWebhookWithManager(mgr ctrl.Manager) error {
-	return ctrl.NewWebhookManagedBy(mgr).For(&memcachedv1beta1.Memcached{}).
+	return ctrl.NewWebhookManagedBy(mgr, &memcachedv1beta1.Memcached{}).
 		WithValidator(&MemcachedCustomValidator{}).
 		WithDefaulter(&MemcachedCustomDefaulter{}).
 		Complete()
@@ -55,15 +52,10 @@ type MemcachedCustomDefaulter struct {
 	// TODO(user): Add more fields as needed for defaulting
 }
 
-var _ webhook.CustomDefaulter = &MemcachedCustomDefaulter{}
+var _ admission.Defaulter[*memcachedv1beta1.Memcached] = &MemcachedCustomDefaulter{}
 
-// Default implements webhook.CustomDefaulter so a webhook will be registered for the Kind Memcached.
-func (d *MemcachedCustomDefaulter) Default(_ context.Context, obj runtime.Object) error {
-	memcached, ok := obj.(*memcachedv1beta1.Memcached)
-
-	if !ok {
-		return fmt.Errorf("expected an Memcached object but got %T", obj)
-	}
+// Default implements admission.Defaulter so a webhook will be registered for the Kind Memcached.
+func (d *MemcachedCustomDefaulter) Default(_ context.Context, memcached *memcachedv1beta1.Memcached) error {
 	memcachedlog.Info("Defaulting for Memcached", "name", memcached.GetName())
 
 	memcached.Default()
@@ -85,36 +77,24 @@ type MemcachedCustomValidator struct {
 	// TODO(user): Add more fields as needed for validation
 }
 
-var _ webhook.CustomValidator = &MemcachedCustomValidator{}
+var _ admission.Validator[*memcachedv1beta1.Memcached] = &MemcachedCustomValidator{}
 
-// ValidateCreate implements webhook.CustomValidator so a webhook will be registered for the type Memcached.
-func (v *MemcachedCustomValidator) ValidateCreate(_ context.Context, obj runtime.Object) (admission.Warnings, error) {
-	memcached, ok := obj.(*memcachedv1beta1.Memcached)
-	if !ok {
-		return nil, fmt.Errorf("expected a Memcached object but got %T", obj)
-	}
+// ValidateCreate implements admission.Validator so a webhook will be registered for the type Memcached.
+func (v *MemcachedCustomValidator) ValidateCreate(_ context.Context, memcached *memcachedv1beta1.Memcached) (admission.Warnings, error) {
 	memcachedlog.Info("Validation for Memcached upon creation", "name", memcached.GetName())
 
 	return memcached.ValidateCreate()
 }
 
-// ValidateUpdate implements webhook.CustomValidator so a webhook will be registered for the type Memcached.
-func (v *MemcachedCustomValidator) ValidateUpdate(_ context.Context, oldObj, newObj runtime.Object) (admission.Warnings, error) {
-	memcached, ok := newObj.(*memcachedv1beta1.Memcached)
-	if !ok {
-		return nil, fmt.Errorf("expected a Memcached object for the newObj but got %T", newObj)
-	}
+// ValidateUpdate implements admission.Validator so a webhook will be registered for the type Memcached.
+func (v *MemcachedCustomValidator) ValidateUpdate(_ context.Context, oldObj, memcached *memcachedv1beta1.Memcached) (admission.Warnings, error) {
 	memcachedlog.Info("Validation for Memcached upon update", "name", memcached.GetName())
 
 	return memcached.ValidateUpdate(oldObj)
 }
 
-// ValidateDelete implements webhook.CustomValidator so a webhook will be registered for the type Memcached.
-func (v *MemcachedCustomValidator) ValidateDelete(_ context.Context, obj runtime.Object) (admission.Warnings, error) {
-	memcached, ok := obj.(*memcachedv1beta1.Memcached)
-	if !ok {
-		return nil, fmt.Errorf("expected a Memcached object but got %T", obj)
-	}
+// ValidateDelete implements admission.Validator so a webhook will be registered for the type Memcached.
+func (v *MemcachedCustomValidator) ValidateDelete(_ context.Context, memcached *memcachedv1beta1.Memcached) (admission.Warnings, error) {
 	memcachedlog.Info("Validation for Memcached upon deletion", "name", memcached.GetName())
 
 	return memcached.ValidateDelete()

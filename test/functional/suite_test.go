@@ -90,6 +90,13 @@ func TestAPIs(t *testing.T) {
 }
 
 var _ = BeforeSuite(func() {
+	// Initialize the API defaults as the production manager does.
+	rabbitmqv1.SetupDefaults()
+	memcachedv1.SetupDefaults()
+	instancehav1.SetupDefaults()
+	redisv1.SetupDefaults()
+	networkv1.SetupDefaults()
+
 	logf.SetLogger(zap.New(zap.WriteTo(GinkgoWriter), zap.UseDevMode(true), func(o *zap.Options) {
 		o.Development = true
 		o.TimeEncoder = zapcore.ISO8601TimeEncoder

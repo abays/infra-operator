@@ -18,12 +18,9 @@ package v1beta1
 
 import (
 	"context"
-	"fmt"
 
-	"k8s.io/apimachinery/pkg/runtime"
 	ctrl "sigs.k8s.io/controller-runtime"
 	logf "sigs.k8s.io/controller-runtime/pkg/log"
-	"sigs.k8s.io/controller-runtime/pkg/webhook"
 	"sigs.k8s.io/controller-runtime/pkg/webhook/admission"
 
 	networkv1beta1 "github.com/openstack-k8s-operators/infra-operator/apis/network/v1beta1"
@@ -40,7 +37,7 @@ func SetupIPSetWebhookWithManager(mgr ctrl.Manager) error {
 		return err
 	}
 
-	return ctrl.NewWebhookManagedBy(mgr).For(&networkv1beta1.IPSet{}).
+	return ctrl.NewWebhookManagedBy(mgr, &networkv1beta1.IPSet{}).
 		WithValidator(&IPSetCustomValidator{}).
 		WithDefaulter(&IPSetCustomDefaulter{}).
 		Complete()
@@ -59,15 +56,10 @@ type IPSetCustomDefaulter struct {
 	// TODO(user): Add more fields as needed for defaulting
 }
 
-var _ webhook.CustomDefaulter = &IPSetCustomDefaulter{}
+var _ admission.Defaulter[*networkv1beta1.IPSet] = &IPSetCustomDefaulter{}
 
-// Default implements webhook.CustomDefaulter so a webhook will be registered for the Kind IPSet.
-func (d *IPSetCustomDefaulter) Default(_ context.Context, obj runtime.Object) error {
-	ipset, ok := obj.(*networkv1beta1.IPSet)
-
-	if !ok {
-		return fmt.Errorf("expected an IPSet object but got %T", obj)
-	}
+// Default implements admission.Defaulter so a webhook will be registered for the Kind IPSet.
+func (d *IPSetCustomDefaulter) Default(_ context.Context, ipset *networkv1beta1.IPSet) error {
 	ipsetlog.Info("Defaulting for IPSet", "name", ipset.GetName())
 
 	ipset.Default()
@@ -89,36 +81,24 @@ type IPSetCustomValidator struct {
 	// TODO(user): Add more fields as needed for validation
 }
 
-var _ webhook.CustomValidator = &IPSetCustomValidator{}
+var _ admission.Validator[*networkv1beta1.IPSet] = &IPSetCustomValidator{}
 
-// ValidateCreate implements webhook.CustomValidator so a webhook will be registered for the type IPSet.
-func (v *IPSetCustomValidator) ValidateCreate(_ context.Context, obj runtime.Object) (admission.Warnings, error) {
-	ipset, ok := obj.(*networkv1beta1.IPSet)
-	if !ok {
-		return nil, fmt.Errorf("expected a IPSet object but got %T", obj)
-	}
+// ValidateCreate implements admission.Validator so a webhook will be registered for the type IPSet.
+func (v *IPSetCustomValidator) ValidateCreate(_ context.Context, ipset *networkv1beta1.IPSet) (admission.Warnings, error) {
 	ipsetlog.Info("Validation for IPSet upon creation", "name", ipset.GetName())
 
 	return ipset.ValidateCreate()
 }
 
-// ValidateUpdate implements webhook.CustomValidator so a webhook will be registered for the type IPSet.
-func (v *IPSetCustomValidator) ValidateUpdate(_ context.Context, oldObj, newObj runtime.Object) (admission.Warnings, error) {
-	ipset, ok := newObj.(*networkv1beta1.IPSet)
-	if !ok {
-		return nil, fmt.Errorf("expected a IPSet object for the newObj but got %T", newObj)
-	}
+// ValidateUpdate implements admission.Validator so a webhook will be registered for the type IPSet.
+func (v *IPSetCustomValidator) ValidateUpdate(_ context.Context, oldObj, ipset *networkv1beta1.IPSet) (admission.Warnings, error) {
 	ipsetlog.Info("Validation for IPSet upon update", "name", ipset.GetName())
 
 	return ipset.ValidateUpdate(oldObj)
 }
 
-// ValidateDelete implements webhook.CustomValidator so a webhook will be registered for the type IPSet.
-func (v *IPSetCustomValidator) ValidateDelete(_ context.Context, obj runtime.Object) (admission.Warnings, error) {
-	ipset, ok := obj.(*networkv1beta1.IPSet)
-	if !ok {
-		return nil, fmt.Errorf("expected a IPSet object but got %T", obj)
-	}
+// ValidateDelete implements admission.Validator so a webhook will be registered for the type IPSet.
+func (v *IPSetCustomValidator) ValidateDelete(_ context.Context, ipset *networkv1beta1.IPSet) (admission.Warnings, error) {
 	ipsetlog.Info("Validation for IPSet upon deletion", "name", ipset.GetName())
 
 	return ipset.ValidateDelete()

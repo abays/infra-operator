@@ -19,12 +19,8 @@ package v1beta1
 
 import (
 	"context"
-	"fmt"
-
-	"k8s.io/apimachinery/pkg/runtime"
 	ctrl "sigs.k8s.io/controller-runtime"
 	logf "sigs.k8s.io/controller-runtime/pkg/log"
-	"sigs.k8s.io/controller-runtime/pkg/webhook"
 	"sigs.k8s.io/controller-runtime/pkg/webhook/admission"
 
 	redisv1beta1 "github.com/openstack-k8s-operators/infra-operator/apis/redis/v1beta1"
@@ -36,7 +32,7 @@ var redislog = logf.Log.WithName("redis-resource")
 
 // SetupRedisWebhookWithManager registers the webhook for Redis in the manager.
 func SetupRedisWebhookWithManager(mgr ctrl.Manager) error {
-	return ctrl.NewWebhookManagedBy(mgr).For(&redisv1beta1.Redis{}).
+	return ctrl.NewWebhookManagedBy(mgr, &redisv1beta1.Redis{}).
 		WithValidator(&RedisCustomValidator{}).
 		WithDefaulter(&RedisCustomDefaulter{}).
 		Complete()
@@ -55,15 +51,10 @@ type RedisCustomDefaulter struct {
 	// TODO(user): Add more fields as needed for defaulting
 }
 
-var _ webhook.CustomDefaulter = &RedisCustomDefaulter{}
+var _ admission.Defaulter[*redisv1beta1.Redis] = &RedisCustomDefaulter{}
 
-// Default implements webhook.CustomDefaulter so a webhook will be registered for the Kind Redis.
-func (d *RedisCustomDefaulter) Default(_ context.Context, obj runtime.Object) error {
-	redis, ok := obj.(*redisv1beta1.Redis)
-
-	if !ok {
-		return fmt.Errorf("expected an Redis object but got %T", obj)
-	}
+// Default implements admission.Defaulter so a webhook will be registered for the Kind Redis.
+func (d *RedisCustomDefaulter) Default(_ context.Context, redis *redisv1beta1.Redis) error {
 	redislog.Info("Defaulting for Redis", "name", redis.GetName())
 
 	redis.Default()
@@ -85,36 +76,24 @@ type RedisCustomValidator struct {
 	// TODO(user): Add more fields as needed for validation
 }
 
-var _ webhook.CustomValidator = &RedisCustomValidator{}
+var _ admission.Validator[*redisv1beta1.Redis] = &RedisCustomValidator{}
 
-// ValidateCreate implements webhook.CustomValidator so a webhook will be registered for the type Redis.
-func (v *RedisCustomValidator) ValidateCreate(_ context.Context, obj runtime.Object) (admission.Warnings, error) {
-	redis, ok := obj.(*redisv1beta1.Redis)
-	if !ok {
-		return nil, fmt.Errorf("expected a Redis object but got %T", obj)
-	}
+// ValidateCreate implements admission.Validator so a webhook will be registered for the type Redis.
+func (v *RedisCustomValidator) ValidateCreate(_ context.Context, redis *redisv1beta1.Redis) (admission.Warnings, error) {
 	redislog.Info("Validation for Redis upon creation", "name", redis.GetName())
 
 	return redis.ValidateCreate()
 }
 
-// ValidateUpdate implements webhook.CustomValidator so a webhook will be registered for the type Redis.
-func (v *RedisCustomValidator) ValidateUpdate(_ context.Context, oldObj, newObj runtime.Object) (admission.Warnings, error) {
-	redis, ok := newObj.(*redisv1beta1.Redis)
-	if !ok {
-		return nil, fmt.Errorf("expected a Redis object for the newObj but got %T", newObj)
-	}
+// ValidateUpdate implements admission.Validator so a webhook will be registered for the type Redis.
+func (v *RedisCustomValidator) ValidateUpdate(_ context.Context, oldObj, redis *redisv1beta1.Redis) (admission.Warnings, error) {
 	redislog.Info("Validation for Redis upon update", "name", redis.GetName())
 
 	return redis.ValidateUpdate(oldObj)
 }
 
-// ValidateDelete implements webhook.CustomValidator so a webhook will be registered for the type Redis.
-func (v *RedisCustomValidator) ValidateDelete(_ context.Context, obj runtime.Object) (admission.Warnings, error) {
-	redis, ok := obj.(*redisv1beta1.Redis)
-	if !ok {
-		return nil, fmt.Errorf("expected a Redis object but got %T", obj)
-	}
+// ValidateDelete implements admission.Validator so a webhook will be registered for the type Redis.
+func (v *RedisCustomValidator) ValidateDelete(_ context.Context, redis *redisv1beta1.Redis) (admission.Warnings, error) {
 	redislog.Info("Validation for Redis upon deletion", "name", redis.GetName())
 
 	return redis.ValidateDelete()

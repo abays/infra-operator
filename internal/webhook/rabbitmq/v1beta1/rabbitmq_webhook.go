@@ -19,13 +19,10 @@ package v1beta1
 
 import (
 	"context"
-	"fmt"
 
-	"k8s.io/apimachinery/pkg/runtime"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	logf "sigs.k8s.io/controller-runtime/pkg/log"
-	"sigs.k8s.io/controller-runtime/pkg/webhook"
 	"sigs.k8s.io/controller-runtime/pkg/webhook/admission"
 
 	rabbitmqv1beta1 "github.com/openstack-k8s-operators/infra-operator/apis/rabbitmq/v1beta1"
@@ -37,7 +34,7 @@ var rabbitmqlog = logf.Log.WithName("rabbitmq-resource")
 
 // SetupRabbitMqWebhookWithManager registers the webhook for RabbitMq in the manager.
 func SetupRabbitMqWebhookWithManager(mgr ctrl.Manager) error {
-	return ctrl.NewWebhookManagedBy(mgr).For(&rabbitmqv1beta1.RabbitMq{}).
+	return ctrl.NewWebhookManagedBy(mgr, &rabbitmqv1beta1.RabbitMq{}).
 		WithValidator(&RabbitMqCustomValidator{}).
 		WithDefaulter(&RabbitMqCustomDefaulter{
 			Client: mgr.GetClient(),
@@ -57,15 +54,10 @@ type RabbitMqCustomDefaulter struct {
 	Client client.Client
 }
 
-var _ webhook.CustomDefaulter = &RabbitMqCustomDefaulter{}
+var _ admission.Defaulter[*rabbitmqv1beta1.RabbitMq] = &RabbitMqCustomDefaulter{}
 
-// Default implements webhook.CustomDefaulter so a webhook will be registered for the Kind RabbitMq.
-func (d *RabbitMqCustomDefaulter) Default(_ context.Context, obj runtime.Object) error {
-	rabbitmq, ok := obj.(*rabbitmqv1beta1.RabbitMq)
-
-	if !ok {
-		return fmt.Errorf("expected an RabbitMq object but got %T", obj)
-	}
+// Default implements admission.Defaulter so a webhook will be registered for the Kind RabbitMq.
+func (d *RabbitMqCustomDefaulter) Default(_ context.Context, rabbitmq *rabbitmqv1beta1.RabbitMq) error {
 	rabbitmqlog.Info("Defaulting for RabbitMq", "name", rabbitmq.GetName())
 
 	rabbitmq.Default(d.Client)
@@ -88,36 +80,24 @@ type RabbitMqCustomValidator struct {
 	// TODO(user): Add more fields as needed for validation
 }
 
-var _ webhook.CustomValidator = &RabbitMqCustomValidator{}
+var _ admission.Validator[*rabbitmqv1beta1.RabbitMq] = &RabbitMqCustomValidator{}
 
-// ValidateCreate implements webhook.CustomValidator so a webhook will be registered for the type RabbitMq.
-func (v *RabbitMqCustomValidator) ValidateCreate(_ context.Context, obj runtime.Object) (admission.Warnings, error) {
-	rabbitmq, ok := obj.(*rabbitmqv1beta1.RabbitMq)
-	if !ok {
-		return nil, fmt.Errorf("expected a RabbitMq object but got %T", obj)
-	}
+// ValidateCreate implements admission.Validator so a webhook will be registered for the type RabbitMq.
+func (v *RabbitMqCustomValidator) ValidateCreate(_ context.Context, rabbitmq *rabbitmqv1beta1.RabbitMq) (admission.Warnings, error) {
 	rabbitmqlog.Info("Validation for RabbitMq upon creation", "name", rabbitmq.GetName())
 
 	return rabbitmq.ValidateCreate()
 }
 
-// ValidateUpdate implements webhook.CustomValidator so a webhook will be registered for the type RabbitMq.
-func (v *RabbitMqCustomValidator) ValidateUpdate(_ context.Context, oldObj, newObj runtime.Object) (admission.Warnings, error) {
-	rabbitmq, ok := newObj.(*rabbitmqv1beta1.RabbitMq)
-	if !ok {
-		return nil, fmt.Errorf("expected a RabbitMq object for the newObj but got %T", newObj)
-	}
+// ValidateUpdate implements admission.Validator so a webhook will be registered for the type RabbitMq.
+func (v *RabbitMqCustomValidator) ValidateUpdate(_ context.Context, oldObj, rabbitmq *rabbitmqv1beta1.RabbitMq) (admission.Warnings, error) {
 	rabbitmqlog.Info("Validation for RabbitMq upon update", "name", rabbitmq.GetName())
 
 	return rabbitmq.ValidateUpdate(oldObj)
 }
 
-// ValidateDelete implements webhook.CustomValidator so a webhook will be registered for the type RabbitMq.
-func (v *RabbitMqCustomValidator) ValidateDelete(_ context.Context, obj runtime.Object) (admission.Warnings, error) {
-	rabbitmq, ok := obj.(*rabbitmqv1beta1.RabbitMq)
-	if !ok {
-		return nil, fmt.Errorf("expected a RabbitMq object but got %T", obj)
-	}
+// ValidateDelete implements admission.Validator so a webhook will be registered for the type RabbitMq.
+func (v *RabbitMqCustomValidator) ValidateDelete(_ context.Context, rabbitmq *rabbitmqv1beta1.RabbitMq) (admission.Warnings, error) {
 	rabbitmqlog.Info("Validation for RabbitMq upon deletion", "name", rabbitmq.GetName())
 
 	return rabbitmq.ValidateDelete()

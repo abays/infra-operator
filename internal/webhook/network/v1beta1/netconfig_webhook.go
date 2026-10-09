@@ -18,12 +18,9 @@ package v1beta1
 
 import (
 	"context"
-	"fmt"
 
-	"k8s.io/apimachinery/pkg/runtime"
 	ctrl "sigs.k8s.io/controller-runtime"
 	logf "sigs.k8s.io/controller-runtime/pkg/log"
-	"sigs.k8s.io/controller-runtime/pkg/webhook"
 	"sigs.k8s.io/controller-runtime/pkg/webhook/admission"
 
 	networkv1beta1 "github.com/openstack-k8s-operators/infra-operator/apis/network/v1beta1"
@@ -40,7 +37,7 @@ func SetupNetConfigWebhookWithManager(mgr ctrl.Manager) error {
 		return err
 	}
 
-	return ctrl.NewWebhookManagedBy(mgr).For(&networkv1beta1.NetConfig{}).
+	return ctrl.NewWebhookManagedBy(mgr, &networkv1beta1.NetConfig{}).
 		WithValidator(&NetConfigCustomValidator{}).
 		WithDefaulter(&NetConfigCustomDefaulter{}).
 		Complete()
@@ -59,15 +56,10 @@ type NetConfigCustomDefaulter struct {
 	// TODO(user): Add more fields as needed for defaulting
 }
 
-var _ webhook.CustomDefaulter = &NetConfigCustomDefaulter{}
+var _ admission.Defaulter[*networkv1beta1.NetConfig] = &NetConfigCustomDefaulter{}
 
-// Default implements webhook.CustomDefaulter so a webhook will be registered for the Kind NetConfig.
-func (d *NetConfigCustomDefaulter) Default(_ context.Context, obj runtime.Object) error {
-	netconfig, ok := obj.(*networkv1beta1.NetConfig)
-
-	if !ok {
-		return fmt.Errorf("expected an NetConfig object but got %T", obj)
-	}
+// Default implements admission.Defaulter so a webhook will be registered for the Kind NetConfig.
+func (d *NetConfigCustomDefaulter) Default(_ context.Context, netconfig *networkv1beta1.NetConfig) error {
 	netconfiglog.Info("Defaulting for NetConfig", "name", netconfig.GetName())
 
 	netconfig.Default()
@@ -88,36 +80,24 @@ type NetConfigCustomValidator struct {
 	// TODO(user): Add more fields as needed for validation
 }
 
-var _ webhook.CustomValidator = &NetConfigCustomValidator{}
+var _ admission.Validator[*networkv1beta1.NetConfig] = &NetConfigCustomValidator{}
 
-// ValidateCreate implements webhook.CustomValidator so a webhook will be registered for the type NetConfig.
-func (v *NetConfigCustomValidator) ValidateCreate(_ context.Context, obj runtime.Object) (admission.Warnings, error) {
-	netconfig, ok := obj.(*networkv1beta1.NetConfig)
-	if !ok {
-		return nil, fmt.Errorf("expected a NetConfig object but got %T", obj)
-	}
+// ValidateCreate implements admission.Validator so a webhook will be registered for the type NetConfig.
+func (v *NetConfigCustomValidator) ValidateCreate(_ context.Context, netconfig *networkv1beta1.NetConfig) (admission.Warnings, error) {
 	netconfiglog.Info("Validation for NetConfig upon creation", "name", netconfig.GetName())
 
 	return netconfig.ValidateCreate()
 }
 
-// ValidateUpdate implements webhook.CustomValidator so a webhook will be registered for the type NetConfig.
-func (v *NetConfigCustomValidator) ValidateUpdate(_ context.Context, oldObj, newObj runtime.Object) (admission.Warnings, error) {
-	netconfig, ok := newObj.(*networkv1beta1.NetConfig)
-	if !ok {
-		return nil, fmt.Errorf("expected a NetConfig object for the newObj but got %T", newObj)
-	}
+// ValidateUpdate implements admission.Validator so a webhook will be registered for the type NetConfig.
+func (v *NetConfigCustomValidator) ValidateUpdate(_ context.Context, oldObj, netconfig *networkv1beta1.NetConfig) (admission.Warnings, error) {
 	netconfiglog.Info("Validation for NetConfig upon update", "name", netconfig.GetName())
 
 	return netconfig.ValidateUpdate(oldObj)
 }
 
-// ValidateDelete implements webhook.CustomValidator so a webhook will be registered for the type NetConfig.
-func (v *NetConfigCustomValidator) ValidateDelete(_ context.Context, obj runtime.Object) (admission.Warnings, error) {
-	netconfig, ok := obj.(*networkv1beta1.NetConfig)
-	if !ok {
-		return nil, fmt.Errorf("expected a NetConfig object but got %T", obj)
-	}
+// ValidateDelete implements admission.Validator so a webhook will be registered for the type NetConfig.
+func (v *NetConfigCustomValidator) ValidateDelete(_ context.Context, netconfig *networkv1beta1.NetConfig) (admission.Warnings, error) {
 	netconfiglog.Info("Validation for NetConfig upon deletion", "name", netconfig.GetName())
 
 	return netconfig.ValidateDelete()

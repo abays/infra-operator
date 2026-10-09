@@ -19,12 +19,9 @@ package v1beta1
 
 import (
 	"context"
-	"fmt"
 
-	"k8s.io/apimachinery/pkg/runtime"
 	ctrl "sigs.k8s.io/controller-runtime"
 	logf "sigs.k8s.io/controller-runtime/pkg/log"
-	"sigs.k8s.io/controller-runtime/pkg/webhook"
 	"sigs.k8s.io/controller-runtime/pkg/webhook/admission"
 
 	networkv1beta1 "github.com/openstack-k8s-operators/infra-operator/apis/network/v1beta1"
@@ -41,7 +38,7 @@ func SetupDNSMasqWebhookWithManager(mgr ctrl.Manager) error {
 		return err
 	}
 
-	return ctrl.NewWebhookManagedBy(mgr).For(&networkv1beta1.DNSMasq{}).
+	return ctrl.NewWebhookManagedBy(mgr, &networkv1beta1.DNSMasq{}).
 		WithValidator(&DNSMasqCustomValidator{}).
 		WithDefaulter(&DNSMasqCustomDefaulter{}).
 		Complete()
@@ -60,15 +57,10 @@ type DNSMasqCustomDefaulter struct {
 	// TODO(user): Add more fields as needed for defaulting
 }
 
-var _ webhook.CustomDefaulter = &DNSMasqCustomDefaulter{}
+var _ admission.Defaulter[*networkv1beta1.DNSMasq] = &DNSMasqCustomDefaulter{}
 
-// Default implements webhook.CustomDefaulter so a webhook will be registered for the Kind DNSMasq.
-func (d *DNSMasqCustomDefaulter) Default(_ context.Context, obj runtime.Object) error {
-	dnsmasq, ok := obj.(*networkv1beta1.DNSMasq)
-
-	if !ok {
-		return fmt.Errorf("expected an DNSMasq object but got %T", obj)
-	}
+// Default implements admission.Defaulter so a webhook will be registered for the Kind DNSMasq.
+func (d *DNSMasqCustomDefaulter) Default(_ context.Context, dnsmasq *networkv1beta1.DNSMasq) error {
 	dnsmasqlog.Info("Defaulting for DNSMasq", "name", dnsmasq.GetName())
 
 	dnsmasq.Default()
@@ -90,36 +82,24 @@ type DNSMasqCustomValidator struct {
 	// TODO(user): Add more fields as needed for validation
 }
 
-var _ webhook.CustomValidator = &DNSMasqCustomValidator{}
+var _ admission.Validator[*networkv1beta1.DNSMasq] = &DNSMasqCustomValidator{}
 
-// ValidateCreate implements webhook.CustomValidator so a webhook will be registered for the type DNSMasq.
-func (v *DNSMasqCustomValidator) ValidateCreate(_ context.Context, obj runtime.Object) (admission.Warnings, error) {
-	dnsmasq, ok := obj.(*networkv1beta1.DNSMasq)
-	if !ok {
-		return nil, fmt.Errorf("expected a DNSMasq object but got %T", obj)
-	}
+// ValidateCreate implements admission.Validator so a webhook will be registered for the type DNSMasq.
+func (v *DNSMasqCustomValidator) ValidateCreate(_ context.Context, dnsmasq *networkv1beta1.DNSMasq) (admission.Warnings, error) {
 	dnsmasqlog.Info("Validation for DNSMasq upon creation", "name", dnsmasq.GetName())
 
 	return dnsmasq.ValidateCreate()
 }
 
-// ValidateUpdate implements webhook.CustomValidator so a webhook will be registered for the type DNSMasq.
-func (v *DNSMasqCustomValidator) ValidateUpdate(_ context.Context, oldObj, newObj runtime.Object) (admission.Warnings, error) {
-	dnsmasq, ok := newObj.(*networkv1beta1.DNSMasq)
-	if !ok {
-		return nil, fmt.Errorf("expected a DNSMasq object for the newObj but got %T", newObj)
-	}
+// ValidateUpdate implements admission.Validator so a webhook will be registered for the type DNSMasq.
+func (v *DNSMasqCustomValidator) ValidateUpdate(_ context.Context, oldObj, dnsmasq *networkv1beta1.DNSMasq) (admission.Warnings, error) {
 	dnsmasqlog.Info("Validation for DNSMasq upon update", "name", dnsmasq.GetName())
 
 	return dnsmasq.ValidateUpdate(oldObj)
 }
 
-// ValidateDelete implements webhook.CustomValidator so a webhook will be registered for the type DNSMasq.
-func (v *DNSMasqCustomValidator) ValidateDelete(_ context.Context, obj runtime.Object) (admission.Warnings, error) {
-	dnsmasq, ok := obj.(*networkv1beta1.DNSMasq)
-	if !ok {
-		return nil, fmt.Errorf("expected a DNSMasq object but got %T", obj)
-	}
+// ValidateDelete implements admission.Validator so a webhook will be registered for the type DNSMasq.
+func (v *DNSMasqCustomValidator) ValidateDelete(_ context.Context, dnsmasq *networkv1beta1.DNSMasq) (admission.Warnings, error) {
 	dnsmasqlog.Info("Validation for DNSMasq upon deletion", "name", dnsmasq.GetName())
 
 	return dnsmasq.ValidateDelete()

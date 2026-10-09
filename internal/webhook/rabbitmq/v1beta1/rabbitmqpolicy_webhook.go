@@ -18,13 +18,10 @@ package v1beta1
 
 import (
 	"context"
-	"fmt"
 
-	"k8s.io/apimachinery/pkg/runtime"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	logf "sigs.k8s.io/controller-runtime/pkg/log"
-	"sigs.k8s.io/controller-runtime/pkg/webhook"
 	"sigs.k8s.io/controller-runtime/pkg/webhook/admission"
 
 	rabbitmqv1beta1 "github.com/openstack-k8s-operators/infra-operator/apis/rabbitmq/v1beta1"
@@ -34,7 +31,7 @@ var policylog = logf.Log.WithName("rabbitmqpolicy-resource")
 
 // SetupRabbitMQPolicyWebhookWithManager registers the webhook for RabbitMQPolicy in the manager.
 func SetupRabbitMQPolicyWebhookWithManager(mgr ctrl.Manager) error {
-	return ctrl.NewWebhookManagedBy(mgr).For(&rabbitmqv1beta1.RabbitMQPolicy{}).
+	return ctrl.NewWebhookManagedBy(mgr, &rabbitmqv1beta1.RabbitMQPolicy{}).
 		WithDefaulter(&RabbitMQPolicyCustomDefaulter{
 			Client: mgr.GetClient(),
 		}).
@@ -56,14 +53,10 @@ type RabbitMQPolicyCustomDefaulter struct {
 	Client client.Client
 }
 
-var _ webhook.CustomDefaulter = &RabbitMQPolicyCustomDefaulter{}
+var _ admission.Defaulter[*rabbitmqv1beta1.RabbitMQPolicy] = &RabbitMQPolicyCustomDefaulter{}
 
-// Default implements webhook.CustomDefaulter so a webhook will be registered for the type RabbitMQPolicy.
-func (d *RabbitMQPolicyCustomDefaulter) Default(_ context.Context, obj runtime.Object) error {
-	rabbitmqpolicy, ok := obj.(*rabbitmqv1beta1.RabbitMQPolicy)
-	if !ok {
-		return fmt.Errorf("expected a RabbitMQPolicy object but got %T", obj)
-	}
+// Default implements admission.Defaulter so a webhook will be registered for the type RabbitMQPolicy.
+func (d *RabbitMQPolicyCustomDefaulter) Default(_ context.Context, rabbitmqpolicy *rabbitmqv1beta1.RabbitMQPolicy) error {
 	policylog.Info("Defaulting for RabbitMQPolicy", "name", rabbitmqpolicy.GetName())
 
 	rabbitmqpolicy.Default(d.Client)
@@ -82,36 +75,24 @@ type RabbitMQPolicyCustomValidator struct {
 	Client client.Client
 }
 
-var _ webhook.CustomValidator = &RabbitMQPolicyCustomValidator{}
+var _ admission.Validator[*rabbitmqv1beta1.RabbitMQPolicy] = &RabbitMQPolicyCustomValidator{}
 
-// ValidateCreate implements webhook.CustomValidator so a webhook will be registered for the type RabbitMQPolicy.
-func (v *RabbitMQPolicyCustomValidator) ValidateCreate(_ context.Context, obj runtime.Object) (admission.Warnings, error) {
-	rabbitmqpolicy, ok := obj.(*rabbitmqv1beta1.RabbitMQPolicy)
-	if !ok {
-		return nil, fmt.Errorf("expected a RabbitMQPolicy object but got %T", obj)
-	}
+// ValidateCreate implements admission.Validator so a webhook will be registered for the type RabbitMQPolicy.
+func (v *RabbitMQPolicyCustomValidator) ValidateCreate(_ context.Context, rabbitmqpolicy *rabbitmqv1beta1.RabbitMQPolicy) (admission.Warnings, error) {
 	policylog.Info("Validation for RabbitMQPolicy upon creation", "name", rabbitmqpolicy.GetName())
 
 	return rabbitmqpolicy.ValidateCreate(v.Client)
 }
 
-// ValidateUpdate implements webhook.CustomValidator so a webhook will be registered for the type RabbitMQPolicy.
-func (v *RabbitMQPolicyCustomValidator) ValidateUpdate(_ context.Context, oldObj, newObj runtime.Object) (admission.Warnings, error) {
-	rabbitmqpolicy, ok := newObj.(*rabbitmqv1beta1.RabbitMQPolicy)
-	if !ok {
-		return nil, fmt.Errorf("expected a RabbitMQPolicy object for the newObj but got %T", newObj)
-	}
+// ValidateUpdate implements admission.Validator so a webhook will be registered for the type RabbitMQPolicy.
+func (v *RabbitMQPolicyCustomValidator) ValidateUpdate(_ context.Context, oldObj, rabbitmqpolicy *rabbitmqv1beta1.RabbitMQPolicy) (admission.Warnings, error) {
 	policylog.Info("Validation for RabbitMQPolicy upon update", "name", rabbitmqpolicy.GetName())
 
 	return rabbitmqpolicy.ValidateUpdate(v.Client, oldObj)
 }
 
-// ValidateDelete implements webhook.CustomValidator so a webhook will be registered for the type RabbitMQPolicy.
-func (v *RabbitMQPolicyCustomValidator) ValidateDelete(_ context.Context, obj runtime.Object) (admission.Warnings, error) {
-	rabbitmqpolicy, ok := obj.(*rabbitmqv1beta1.RabbitMQPolicy)
-	if !ok {
-		return nil, fmt.Errorf("expected a RabbitMQPolicy object but got %T", obj)
-	}
+// ValidateDelete implements admission.Validator so a webhook will be registered for the type RabbitMQPolicy.
+func (v *RabbitMQPolicyCustomValidator) ValidateDelete(_ context.Context, rabbitmqpolicy *rabbitmqv1beta1.RabbitMQPolicy) (admission.Warnings, error) {
 	policylog.Info("Validation for RabbitMQPolicy upon deletion", "name", rabbitmqpolicy.GetName())
 
 	return rabbitmqpolicy.ValidateDelete(v.Client)

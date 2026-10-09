@@ -18,12 +18,9 @@ package v1beta1
 
 import (
 	"context"
-	"fmt"
 
-	"k8s.io/apimachinery/pkg/runtime"
 	ctrl "sigs.k8s.io/controller-runtime"
 	logf "sigs.k8s.io/controller-runtime/pkg/log"
-	"sigs.k8s.io/controller-runtime/pkg/webhook"
 	"sigs.k8s.io/controller-runtime/pkg/webhook/admission"
 
 	networkv1beta1 "github.com/openstack-k8s-operators/infra-operator/apis/network/v1beta1"
@@ -40,7 +37,7 @@ func SetupReservationWebhookWithManager(mgr ctrl.Manager) error {
 		return err
 	}
 
-	return ctrl.NewWebhookManagedBy(mgr).For(&networkv1beta1.Reservation{}).
+	return ctrl.NewWebhookManagedBy(mgr, &networkv1beta1.Reservation{}).
 		WithValidator(&ReservationCustomValidator{}).
 		WithDefaulter(&ReservationCustomDefaulter{}).
 		Complete()
@@ -59,15 +56,10 @@ type ReservationCustomDefaulter struct {
 	// TODO(user): Add more fields as needed for defaulting
 }
 
-var _ webhook.CustomDefaulter = &ReservationCustomDefaulter{}
+var _ admission.Defaulter[*networkv1beta1.Reservation] = &ReservationCustomDefaulter{}
 
-// Default implements webhook.CustomDefaulter so a webhook will be registered for the Kind Reservation.
-func (d *ReservationCustomDefaulter) Default(_ context.Context, obj runtime.Object) error {
-	reservation, ok := obj.(*networkv1beta1.Reservation)
-
-	if !ok {
-		return fmt.Errorf("expected an Reservation object but got %T", obj)
-	}
+// Default implements admission.Defaulter so a webhook will be registered for the Kind Reservation.
+func (d *ReservationCustomDefaulter) Default(_ context.Context, reservation *networkv1beta1.Reservation) error {
 	reservationlog.Info("Defaulting for Reservation", "name", reservation.GetName())
 
 	reservation.Default()
@@ -89,36 +81,24 @@ type ReservationCustomValidator struct {
 	// TODO(user): Add more fields as needed for validation
 }
 
-var _ webhook.CustomValidator = &ReservationCustomValidator{}
+var _ admission.Validator[*networkv1beta1.Reservation] = &ReservationCustomValidator{}
 
-// ValidateCreate implements webhook.CustomValidator so a webhook will be registered for the type Reservation.
-func (v *ReservationCustomValidator) ValidateCreate(_ context.Context, obj runtime.Object) (admission.Warnings, error) {
-	reservation, ok := obj.(*networkv1beta1.Reservation)
-	if !ok {
-		return nil, fmt.Errorf("expected a Reservation object but got %T", obj)
-	}
+// ValidateCreate implements admission.Validator so a webhook will be registered for the type Reservation.
+func (v *ReservationCustomValidator) ValidateCreate(_ context.Context, reservation *networkv1beta1.Reservation) (admission.Warnings, error) {
 	reservationlog.Info("Validation for Reservation upon creation", "name", reservation.GetName())
 
 	return reservation.ValidateCreate()
 }
 
-// ValidateUpdate implements webhook.CustomValidator so a webhook will be registered for the type Reservation.
-func (v *ReservationCustomValidator) ValidateUpdate(_ context.Context, oldObj, newObj runtime.Object) (admission.Warnings, error) {
-	reservation, ok := newObj.(*networkv1beta1.Reservation)
-	if !ok {
-		return nil, fmt.Errorf("expected a Reservation object for the newObj but got %T", newObj)
-	}
+// ValidateUpdate implements admission.Validator so a webhook will be registered for the type Reservation.
+func (v *ReservationCustomValidator) ValidateUpdate(_ context.Context, oldObj, reservation *networkv1beta1.Reservation) (admission.Warnings, error) {
 	reservationlog.Info("Validation for Reservation upon update", "name", reservation.GetName())
 
 	return reservation.ValidateUpdate(oldObj)
 }
 
-// ValidateDelete implements webhook.CustomValidator so a webhook will be registered for the type Reservation.
-func (v *ReservationCustomValidator) ValidateDelete(_ context.Context, obj runtime.Object) (admission.Warnings, error) {
-	reservation, ok := obj.(*networkv1beta1.Reservation)
-	if !ok {
-		return nil, fmt.Errorf("expected a Reservation object but got %T", obj)
-	}
+// ValidateDelete implements admission.Validator so a webhook will be registered for the type Reservation.
+func (v *ReservationCustomValidator) ValidateDelete(_ context.Context, reservation *networkv1beta1.Reservation) (admission.Warnings, error) {
 	reservationlog.Info("Validation for Reservation upon deletion", "name", reservation.GetName())
 
 	return reservation.ValidateDelete()
